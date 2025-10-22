@@ -1,0 +1,21 @@
+{
+  "compilerOptions": {
+    "target": "ES2022", // versión ECMAScript de salida
+    "module": "es2022", // o "esnext" / "node16" si usas ESM
+    "rootDir": "src", // carpeta de código TS fuente
+    "outDir": "dist", // carpeta de salida JS compilado
+    "strict": true, // habilita chequeo estricto
+    "esModuleInterop": true, // interoperabilidad entre ESM/CommonJS
+    "moduleResolution": "node", // resolución de módulos estilo Node
+    "resolveJsonModule": true, // permitir importar JSON
+    "sourceMap": true, // generar mapas para debugging
+    "skipLibCheck": true, // saltar chequeo de bibliotecas
+    "forceConsistentCasingInFileNames": true,
+  },
+  "include": [
+    "src/**/*"
+  ],
+  "exclude": [
+    "node_modules"
+  ]
+}
