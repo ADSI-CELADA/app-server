@@ -1,9 +1,10 @@
-import express from "express";
+import express, { json } from "express";
 import morgan from "morgan";
 import cors from "cors";
 import type { Application } from "express";
 import { UserRouter } from "./router/UserRouter";
 import { connectDB } from "./db/mongo";
+import { WorkSpaceRouter } from "./router/WorkSpaceRouter";
 
 class ServerApp {
   public app: Application = express();
@@ -26,13 +27,14 @@ class ServerApp {
 
   private middlewares() {
     this.app.use(express.json());
+    this.app.use(json())
     this.app.use(express.urlencoded({ extended: true }));
     this.app.use(morgan('dev'));
     this.app.use(cors());
   }
 
   routers(): Array<express.Router> {
-    return [new UserRouter().router];
+    return [new UserRouter().router, new WorkSpaceRouter().router];
   }
 
   private httpRoutes() {

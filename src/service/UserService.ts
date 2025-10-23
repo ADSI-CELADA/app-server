@@ -2,6 +2,7 @@ import jwt from "jsonwebtoken";
 import { UserModel } from "../model/UserModel";
 import { IUser } from "../interface/IUser"
 import { compareSync, genSaltSync, hashSync } from "bcrypt";
+import { Environment } from "../config/Config";
 
 export class UserService {
 
@@ -23,13 +24,13 @@ export class UserService {
         try {
             const user = await this.userModel.findOne({ email });
 
-            if (!user) throw new Error("ERROR_FOUND");
+            if (!user) throw new Error("NOT_FOUND");
 
             const validatePassword: boolean = compareSync(password, user.password);
 
             if (!validatePassword) throw new Error("ERROR_FOUND");
 
-            const token: string = jwt.sign({ id: user.id, email: user.email }, "348YGV3NRP3FOWR347PE3Y8", { expiresIn: '2h' });
+            const token: string = jwt.sign({ id: user.id, email: user.email }, Environment.getInstance().get("JWT_KEY"), { expiresIn: '2h' });
 
             return { token, user };
 
@@ -37,5 +38,4 @@ export class UserService {
             throw new Error("Credentials incorrect");
         }
     }
-
 }

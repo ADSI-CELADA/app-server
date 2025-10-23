@@ -20,13 +20,11 @@ export class UserController {
 
     public async login(req: Request, res: Response): Promise<void> {
         try {
-            const {email, password} = req.body;
+            const { email, password } = req.body;
             const { token, user } = await this.userService.loginUser(email, password);
-            res.status(200).json({ data : "LOGIN_OK", token, user })
+            res.status(200).json({ data: "LOGIN_OK", token, user })
         } catch (error) {
             res.status(401).json({ message: (error as Error).message });
         }
     }
-
-
 }
