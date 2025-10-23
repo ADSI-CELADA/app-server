@@ -1,6 +1,8 @@
+import { ObjectId } from "mongoose";
 import { IUser } from "./IUser";
 
 export interface IWorkSpace {
+    owner: ObjectId;
     name_workspace: string;
     description: string;
     members: IWorkSpaceMember[];

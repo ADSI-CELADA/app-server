@@ -9,7 +9,7 @@ const WorkSpaceMemberSchema = new Schema(
     role: {
       type: String,
       enum: ["OWNER", "ADMIN", "MEMBER", "VIEWER"],
-      default: "OWNER",
+      default: "MEMBER",
     },
     joinedAt: { type: Date, default: Date.now },
   },
@@ -21,6 +21,7 @@ const WorkSpaceSchema = new Schema<IWorkSpaceDocument>({
   description: { type: String, required: true },
   members: { type: [WorkSpaceMemberSchema], default: [] },
   createdAt: { type: Date, default: Date.now },
+  owner: { type: Schema.Types.ObjectId, ref: 'User', required: true },
 });
 
 export const WorkSpaceModel = mongoose.model<IWorkSpaceDocument>("WorkSpace", WorkSpaceSchema);
