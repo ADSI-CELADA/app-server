@@ -1,4 +1,4 @@
-import { Model } from "mongoose";
+import { Model, ObjectId } from "mongoose";
 import { IWorkSpaceDocument, WorkSpaceModel } from "../model/WorkSpaceModel";
 import { IWorkSpace } from "../interface/IWorkSpace";
 import { RolePermissions } from "../utils/RolePermisions";
@@ -41,7 +41,7 @@ export class WorkSpaceService {
         }
     }
 
-    public async updateWorkSpace(id: string, workSpaceData: Partial<IWorkSpace>, userId: string): Promise<IWorkSpace> {
+    public async updateWorkSpace(id: string, workSpaceData: Partial<IWorkSpace>, userId: ObjectId): Promise<IWorkSpace> {
         try {
             // Buscar el workspace
             const workspace = await this.workSpaceModel.findById(id);
@@ -51,7 +51,7 @@ export class WorkSpaceService {
             }
 
             // Verificar qué rol tiene el usuario
-            const userRole = this.getUserRole(workspace, userId);
+            const userRole = RolePermissions.getUserRole(workspace, userId);
 
             // Verificar si tiene permiso para actualizar
             if (!RolePermissions.can(userRole, "update")) {
@@ -71,43 +71,147 @@ export class WorkSpaceService {
         }
     }
 
-    public async deleteWorkSpace(id: string, userId: string): Promise<void> {
+    public async deleteWorkSpace(id: string, userId: ObjectId): Promise<void> {
         try {
-            // Buscar el workspace
             const workspace = await this.workSpaceModel.findById(id);
 
             if (!workspace) {
                 throw new Error("Workspace no encontrado");
             }
 
-            // Verificar qué rol tiene el usuario
-            const userRole = this.getUserRole(workspace, userId);
+            const userRole = RolePermissions.getUserRole(workspace, userId);
 
-            // Verificar si tiene permiso para eliminar
             if (!RolePermissions.can(userRole, "delete")) {
                 throw new Error("No tienes permiso para eliminar este workspace");
             }
 
-            // Eliminar el workspace
             await this.workSpaceModel.findByIdAndDelete(id);
         } catch (error: any) {
             throw new Error(`Error al eliminar workspace: ${error.message}`);
         }
     }
 
-    // Método privado para obtener el rol de un usuario en un workspace
-    private getUserRole(workspace: IWorkSpaceDocument, userId: string): string {
-        // Si es el dueño, retornar OWNER
-        if (workspace.owner.toString() === userId) {
-            return "OWNER";
+    public async addMember(workspaceId: string, userIdToAdd: ObjectId, role: "OWNER" | "ADMIN" | "MEMBER" | "VIEWER",
+        requestingUserId: ObjectId): Promise<IWorkSpace> {
+        try {
+            const workspace = await this.workSpaceModel.findById(workspaceId);
+
+            if (!workspace) {
+                throw new Error("Workspace no encontrado");
+            }
+
+            const userRole = RolePermissions.getUserRole(workspace, requestingUserId);
+
+            if (!RolePermissions.can(userRole, "addMember")) {
+                throw new Error("No tienes permiso para añadir miembros a este workspace");
+            }
+
+            const isMember = workspace.members.some(
+                (member) => member.user.toString() === userIdToAdd.toString()
+            );
+
+            if (isMember) {
+                throw new Error("El usuario ya es miembro de este workspace");
+            }
+
+            if (userRole === "ADMIN" && role === "OWNER") {
+                throw new Error("Solo el OWNER puede asignar el rol de OWNER a otros usuarios");
+            }
+
+            const newMember = {
+                user: userIdToAdd,
+                role: role,
+                joinedAt: new Date()
+            };
+
+            const updatedWorkspace = await this.workSpaceModel.findByIdAndUpdate(
+                workspaceId,
+                { $push: { members: newMember } },
+                { new: true }
+            ).populate("members.user", "name email")
+                .populate("owner", "name email");
+
+            return updatedWorkspace!;
+        } catch (error: any) {
+            throw new Error(`Error al añadir miembro: ${error.message}`);
         }
-
-        // Buscar si es miembro y retornar su rol
-        const member = workspace.members.find(
-            m => m.user.toString() === userId
-        );
-
-        // Si es miembro, retornar su rol, si no, es VIEWER
-        return member ? member.role : "VIEWER";
     }
+
+    public async updateMemberRole(workspaceId: string, memberUserId: ObjectId, newRole: "OWNER" | "ADMIN" | "MEMBER" | "VIEWER",
+        requestingUserId: ObjectId): Promise<IWorkSpace> {
+        try {
+            const workspace = await this.workSpaceModel.findById(workspaceId);
+
+            if (!workspace) {
+                throw new Error("Workspace no encontrado");
+            }
+
+            const userRole = RolePermissions.getUserRole(workspace, requestingUserId);
+
+            if (!RolePermissions.can(userRole, "updateMemberRole")) {
+                throw new Error("No tienes permiso para cambiar roles de miembros");
+            }
+
+            if (newRole === "OWNER" && userRole !== "OWNER") {
+                throw new Error("Solo el OWNER puede asignar el rol de OWNER");
+            }
+
+            const memberExists = workspace.members.some(
+                (member) => member.user.toString() === memberUserId.toString()
+            );
+
+            if (!memberExists) {
+                throw new Error("El usuario no es miembro de este workspace");
+            }
+
+            const updatedWorkspace = await this.workSpaceModel.findOneAndUpdate(
+                {
+                    _id: workspaceId,
+                    "members.user": memberUserId
+                },
+                {
+                    $set: { "members.$.role": newRole }
+                },
+                { new: true }
+            ).populate("members.user", "name email")
+                .populate("owner", "name email");
+
+            return updatedWorkspace!;
+        } catch (error: any) {
+            throw new Error(`Error al actualizar rol del miembro: ${error.message}`);
+        }
+    }
+
+    // Remover un miembro del workspace
+    public async removeMember(workspaceId: string, memberUserId: ObjectId, requestingUserId: ObjectId): Promise<IWorkSpace> {
+        try {
+            const workspace = await this.workSpaceModel.findById(workspaceId);
+
+            if (!workspace) {
+                throw new Error("Workspace no encontrado");
+            }
+
+            const userRole = RolePermissions.getUserRole(workspace, requestingUserId);
+
+            if (!RolePermissions.can(userRole, "removeMember")) {
+                throw new Error("No tienes permiso para remover miembros");
+            }
+
+            if (workspace.owner.toString() === memberUserId.toString()) {
+                throw new Error("No se puede remover al propietario del workspace");
+            }
+
+            const updatedWorkspace = await this.workSpaceModel.findByIdAndUpdate(workspaceId,
+                { $pull: { members: { user: memberUserId } } },
+                { new: true })
+                .populate("members.user", "name email")
+                .populate("owner", "name email");
+
+            return updatedWorkspace!;
+        } catch (error: any) {
+            throw new Error(`Error al remover miembro: ${error.message}`);
+        }
+    }
+
+
 }

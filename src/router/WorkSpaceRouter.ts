@@ -17,39 +17,53 @@ export class WorkSpaceRouter {
 
     private routes(): void {
 
-        // Crear un workspace (requiere autenticación)
         this.router.post(
             "/workspaces", 
             this.authMiddleware.verifyToken.bind(this.authMiddleware) as RequestHandler, 
             (req: Request, res: Response) => this.controller.createWorkSpace(req as IAuthRequest, res)
         );
         
-        // Obtener todos los workspaces (requiere autenticación)
         this.router.get(
             "/workspaces", 
             this.authMiddleware.verifyToken.bind(this.authMiddleware) as RequestHandler, 
             (req: Request, res: Response) => this.controller.getAllWorkSpaces(req, res)
         );
 
-        // Obtener un workspace por ID (requiere autenticación)
         this.router.get(
             "/workspaces/:id", 
             this.authMiddleware.verifyToken.bind(this.authMiddleware) as RequestHandler, 
             (req: Request, res: Response) => this.controller.getWorkSpaceById(req, res)
         );
 
-        // Actualizar un workspace (requiere autenticación y permisos)
         this.router.put(
             "/workspaces/:id", 
             this.authMiddleware.verifyToken.bind(this.authMiddleware) as RequestHandler, 
             (req: Request, res: Response) => this.controller.updateWorkSpace(req as IAuthRequest, res)
         );
 
-        // Eliminar un workspace (requiere autenticación y permisos)
         this.router.delete(
             "/workspaces/:id", 
             this.authMiddleware.verifyToken.bind(this.authMiddleware) as RequestHandler, 
             (req: Request, res: Response) => this.controller.deleteWorkSpace(req as IAuthRequest, res)
+        );
+
+
+        this.router.post(
+            "/workspaces/:id/members",
+            this.authMiddleware.verifyToken.bind(this.authMiddleware) as RequestHandler,
+            (req: Request, res: Response) => this.controller.addMember(req as IAuthRequest, res)
+        );
+
+        this.router.patch(
+            "/workspaces/:id/members/role",
+            this.authMiddleware.verifyToken.bind(this.authMiddleware) as RequestHandler,
+            (req: Request, res: Response) => this.controller.updateMemberRole(req as IAuthRequest, res)
+        );
+
+        this.router.delete(
+            "/workspaces/:id/members",
+            this.authMiddleware.verifyToken.bind(this.authMiddleware) as RequestHandler,
+            (req: Request, res: Response) => this.controller.removeMember(req as IAuthRequest, res)
         );
     }
 }

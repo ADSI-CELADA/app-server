@@ -5,6 +5,7 @@ import type { Application } from "express";
 import { UserRouter } from "./router/UserRouter";
 import { connectDB } from "./db/mongo";
 import { WorkSpaceRouter } from "./router/WorkSpaceRouter";
+import { TaskRouter } from "./router/TaskRouter";
 
 class ServerApp {
   public app: Application = express();
@@ -15,7 +16,7 @@ class ServerApp {
   }
 
   private async initialize() {
-    await this.dataBase();  
+    await this.dataBase();
     this.middlewares();
     this.httpRoutes();
     this.listen();
@@ -34,7 +35,11 @@ class ServerApp {
   }
 
   routers(): Array<express.Router> {
-    return [new UserRouter().router, new WorkSpaceRouter().router];
+    return [
+      new UserRouter().router,
+      new WorkSpaceRouter().router,
+      new TaskRouter().router
+    ];
   }
 
   private httpRoutes() {
